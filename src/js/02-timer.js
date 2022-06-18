@@ -1,19 +1,9 @@
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
-import Notiflix from 'notiflix';
+import Notiflix, { Notify } from 'notiflix';
 Notiflix.Notify.init({
     position: "center-top",
     distance: '100px',
-});
-
-flatpickr("#datetime-picker", {
-    enableTime: true,
-    time_24hr: true,
-    defaultDate: new Date(),
-    minuteIncrement: 1,
-    onClose(selectedDates) {
-        console.log(selectedDates[0]);
-    },
 });
 
 const refs = {
@@ -27,44 +17,49 @@ const refs = {
 
 refs.startBtn.setAttribute('disabled', 'disabled');
 
-flatpickr("#datetime-picker", {
+const options = {
     enableTime: true,
     time_24hr: true,
     defaultDate: new Date(),
     minuteIncrement: 1,
     onClose(selectedDates) {
-        console.log(selectedDates[0]);
+        if (selectedDates[0] < new Date()) {
+        Notify.failure('Please choose a date in the future');
+            return;
+        }
+        refs.startBtn.removeAttribute('disabled');        
+     }
+}
 
-        const userDate = selectedDates[0].getTime();
-        const currentDate = Date.now();
-        let intervalId = null;
+const timePicker = flatpickr("#datetime-picker", options);
 
-        if (userDate < currentDate) {
-            Notiflix.Notify.failure('Please choose a date in the future');
-        } else {
-            refs.startBtn.removeAttribute('disabled');
+refs.startBtn.addEventListener('click', countDown);
 
-            
+let intervalID = null;
 
-            refs.startBtn.addEventListener('click', onStartBtnClick);
-
-            function onStartBtnClick() { 
-                
-                intervalId = setInterval(() => {
-                const userDate = selectedDates[0].getTime();
-                const currentDate = Date.now();
-                const deltaTime = userDate - currentDate;
-                    
-                if(userDate - currentDate >=0){
-                const time = convertMs(deltaTime);
-                updateClockface(time);}
-
-            }, 1000);
-            }
-           
-        };
+function countDown() { 
+    intervalID = setInterval(() => {
+    const userDate = timePicker.selectedDates[0].getTime();
+    const currentDate = Date.now();
+    const deltaTime = userDate - currentDate;
+    const time = convertMs(deltaTime);
+        updateClockface(time);  
+        
+        if (deltaTime < 1000) {
+            clearInterval(intervalID);
+            Notify.success('Your timer stopped!');
+            refs.datetimePicker.removeAttribute('disabled');
     }
-});
+    }, 1000);
+
+    refs.startBtn.setAttribute('disabled', 'disabled');
+    refs.datetimePicker.setAttribute('disabled', 'disabled');
+        
+    }
+    
+
+
+
    
 function updateClockface({ days, hours, minutes, seconds }) {
         refs.days.textContent = `${days}`;
